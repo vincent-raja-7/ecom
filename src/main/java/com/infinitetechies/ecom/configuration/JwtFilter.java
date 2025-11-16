@@ -1,11 +1,19 @@
 package com.infinitetechies.ecom.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.infinitetechies.ecom.exception.JwtValidationException;
+import com.infinitetechies.ecom.model.dto.response.ErrorResponse;
+import com.infinitetechies.ecom.service.inf.IJwtService;
+import com.infinitetechies.ecom.service.inf.IUserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,47 +22,63 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
+@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private IJwtService jwtService;
+    private final IJwtService jwtService;
+    private final ApplicationContext context;
 
-    @Autowired
-    private ApplicationContext context;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
-
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         String token = null;
-        String username = null;
+        String email = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
-            try {
-                username = jwtService.extractUserName(token);
-            } catch (Exception e) {
-                logger.warn("JWT token validation failed: " + e.getMessage());
+            try{
+                email = jwtService.extractUserEmail(token);
+            } catch (JwtValidationException ex) {
+                // Handle the exception directly in the filter
+                handleJwtValidationError(response, ex);
+                return; // Important: stop filter chain execution
             }
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = context.getBean(IUserService.class)
-                    .loadUserByUsername(username);
+        if(email != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            UserDetails userDetails = context.getBean(IUserService.class).loadUserByUsername(email);
 
-            if (jwtService.validateToken(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            if(jwtService.validateToken(token,userDetails)){
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+            else{
+                throw new JwtValidationException("Jwt validation failed ");
+            }
         }
+        filterChain.doFilter(request,response);
+    }
 
-        filterChain.doFilter(request, response);
+
+    private void handleJwtValidationError(HttpServletResponse response, JwtValidationException ex) throws IOException {
+
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("JwtValidationException")
+                .message(ex.getMessage())
+                .build();
+
+        // Convert to JSON and write to response
+        ObjectMapper mapper = new ObjectMapper();
+        response.getWriter().write(mapper.writeValueAsString(errorResponse));
     }
 }

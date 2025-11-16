@@ -7,11 +7,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 //import org.springframework.security.authentication.BadCredentialsException;
 //import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
             ResourceNotFoundException ex, HttpServletRequest request) {
         log.error("Resource not found: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.NOT_FOUND.value())
                 .error("Not Found")
                 .message(ex.getMessage())
@@ -39,7 +40,7 @@ public class GlobalExceptionHandler {
             UnauthorizedException ex, HttpServletRequest request) {
         log.error("Unauthorized access: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Unauthorized")
                 .message(ex.getMessage())
@@ -53,7 +54,7 @@ public class GlobalExceptionHandler {
             BadRequestException ex, HttpServletRequest request) {
         log.error("Bad request: {}", ex.getMessage());
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Bad Request")
                 .message(ex.getMessage())
@@ -62,33 +63,33 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
-//    @ExceptionHandler(BadCredentialsException.class)
-//    public ResponseEntity<ErrorResponse> handleBadCredentialsException(
-//            BadCredentialsException ex, HttpServletRequest request) {
-//        log.error("Bad credentials: {}", ex.getMessage());
-//        ErrorResponse errorResponse = ErrorResponse.builder()
-//                .timestamp(LocalDateTime.now())
-//                .status(HttpStatus.UNAUTHORIZED.value())
-//                .error("Unauthorized")
-//                .message("Invalid email or password")
-//                .path(request.getRequestURI())
-//                .build();
-//        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-//    }
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentialsException(
+            BadCredentialsException ex, HttpServletRequest request) {
+        log.error("Bad credentials: {}", ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("Unauthorized")
+                .message("Invalid email or password")
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
 
-//    @ExceptionHandler(AuthenticationException.class)
-//    public ResponseEntity<ErrorResponse> handleAuthenticationException(
-//            AuthenticationException ex, HttpServletRequest request) {
-//        log.error("Authentication error: {}", ex.getMessage());
-//        ErrorResponse errorResponse = ErrorResponse.builder()
-//                .timestamp(LocalDateTime.now())
-//                .status(HttpStatus.UNAUTHORIZED.value())
-//                .error("Unauthorized")
-//                .message("Authentication failed")
-//                .path(request.getRequestURI())
-//                .build();
-//        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-//    }
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException ex, HttpServletRequest request) {
+        log.error("Authentication error: {}", ex.getMessage());
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("Unauthorized")
+                .message("Authentication failed")
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
@@ -102,7 +103,7 @@ public class GlobalExceptionHandler {
         });
 
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error("Validation Failed")
                 .message(errors.toString())
@@ -116,7 +117,7 @@ public class GlobalExceptionHandler {
             Exception ex, HttpServletRequest request) {
         log.error("Unexpected error: ", ex);
         ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error("Internal Server Error")
                 .message("An unexpected error occurred")
