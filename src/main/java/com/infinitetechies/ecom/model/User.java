@@ -38,6 +38,9 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    @Column(name = "refresh_token", length = 1000) // Default is nullable = true
+    private String refreshToken;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

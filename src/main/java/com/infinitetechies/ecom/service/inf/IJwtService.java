@@ -6,8 +6,9 @@ import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 
 public interface IJwtService {
-    public String generateToken(String email) throws NoSuchAlgorithmException;
-    public Key getKey() throws NoSuchAlgorithmException;
+    public String generateToken(String email);
+    public String generateRefreshToken(String email);
+    public Key getKey();
     public boolean validateToken(String token, UserDetails userDetails);
     public String extractUserEmail(String token);
 }

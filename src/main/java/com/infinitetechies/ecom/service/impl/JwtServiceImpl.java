@@ -39,6 +39,16 @@ public class JwtServiceImpl implements IJwtService {
     }
 
     @Override
+    public String generateRefreshToken(String email) {
+        return Jwts.builder()
+                .subject(email) // No need for extra claims usually
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 7)) // 7 Days
+                .signWith(getKey())
+                .compact();
+    }
+
+    @Override
     public SecretKey getKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);

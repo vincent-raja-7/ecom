@@ -10,6 +10,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import java.time.LocalDateTime;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
     private final IJwtService jwtService;
@@ -34,7 +36,8 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/register");
+        return path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/register") || path.equals("/api/v2/auth/login") || path.equals("/api/v2/auth/refresh") ||
+        path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs/**");
     }
 
 
@@ -66,7 +69,8 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if(email != null && SecurityContextHolder.getContext().getAuthentication() == null){
             UserDetails userDetails = context.getBean(IUserService.class).loadUserByUsername(email);
-
+            log.info("Authenticated!");
+            log.debug("Auth");
             if(jwtService.validateToken(token,userDetails)){
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,null,userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
