@@ -31,12 +31,23 @@ public class JwtFilter extends OncePerRequestFilter {
     private final IJwtService jwtService;
     private final ApplicationContext context;
 
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/register");
+    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         String token = null;
         String email = null;
+        String path = request.getRequestURI();
+        if (path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/register")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if(authHeader != null && authHeader.startsWith("Bearer ")){
             token = authHeader.substring(7);
@@ -48,6 +59,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 return; // Important: stop filter chain execution
             }
         }
+        else{
+            handleJwtValidationError(response, new JwtValidationException("JWT validation failed"));
+            return;
+        }
 
         if(email != null && SecurityContextHolder.getContext().getAuthentication() == null){
             UserDetails userDetails = context.getBean(IUserService.class).loadUserByUsername(email);
@@ -58,7 +73,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
             else{
-                throw new JwtValidationException("Jwt validation failed ");
+                handleJwtValidationError(response, new JwtValidationException("JWT validation failed"));
+                return;
             }
         }
         filterChain.doFilter(request,response);
